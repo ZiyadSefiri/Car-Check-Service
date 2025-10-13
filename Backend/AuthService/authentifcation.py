@@ -1,10 +1,11 @@
 # Backend/AuthService/authentifcation.py
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import text
 from Utility.connect import connect_database
 from passlib.hash import bcrypt
-from jose import jwt  # ✅ use python-jose
+from jose import jwt
 from datetime import datetime, timedelta
 
 # ---- Setup ----
@@ -14,6 +15,20 @@ engine = connect_database()
 SECRET_KEY = "YOUR_SECRET_KEY"  # 🔒 Change this in production
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 day
+
+# ---- CORS ----
+origins = [
+    "http://localhost:3000",  # your Next.js frontend
+    # add other allowed origins here
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],  # allow POST, GET, OPTIONS, etc.
+    allow_headers=["*"],  # allow Content-Type, Authorization, etc.
+)
 
 # ---- Pydantic Models ----
 class RegisterUser(BaseModel):
@@ -37,7 +52,10 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 @app.post("/register")
 def register(user: RegisterUser):
     with engine.connect() as conn:
-        existing = conn.execute(text("SELECT * FROM users WHERE email = :email"), {"email": user.email}).fetchone()
+        existing = conn.execute(
+            text("SELECT * FROM users WHERE email = :email"),
+            {"email": user.email}
+        ).fetchone()
         if existing:
             raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -78,3 +96,5 @@ def login(user: LoginUser):
         token = create_access_token({"sub": str(user_id), "name": name})
 
     return {"access_token": token, "token_type": "bearer"}
+
+
