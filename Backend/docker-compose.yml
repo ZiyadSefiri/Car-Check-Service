@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  authservice:
+    build:
+      context: ./
+      dockerfile: AuthService/.dockerfile
+    container_name: authservice
+    ports:
+      - "8000:8000"
+    environment:
+      # Replace HOST_GATEWAY with the actual host IP or Docker gateway
+      - URL=${DB_URL:-mysql+pymysql://dev:@172.17.0.1:3306/car_service}
+    networks:
+      - backend
+
+  bookingservice:
+    build:
+      context: ./
+      dockerfile: BookingService/.dockerfile
+    container_name: bookingservice
+    ports:
+      - "8080:8080"
+    environment:
+      - URL=${DB_URL:-mysql+pymysql://dev:@172.17.0.1:3306/car_service}
+    networks:
+      - backend
+
+networks:
+  backend:
