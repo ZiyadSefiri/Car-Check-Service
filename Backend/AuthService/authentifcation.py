@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import text
 from Utility.connect import connect_database
-from passlib.hash import bcrypt
+from passlib.hash import argon2
 from jose import jwt
 from datetime import datetime, timedelta
 
@@ -59,7 +59,8 @@ def register(user: RegisterUser):
         if existing:
             raise HTTPException(status_code=400, detail="Email already registered")
 
-        hashed_pw = bcrypt.hash(user.password)
+        # Hash password with Argon2
+        hashed_pw = argon2.hash(user.password)
 
         conn.execute(
             text("""
@@ -90,11 +91,10 @@ def login(user: LoginUser):
 
         user_id, name, hashed_pw = record
 
-        if not bcrypt.verify(user.password, hashed_pw):
+        # Verify password with Argon2
+        if not argon2.verify(user.password, hashed_pw):
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
         token = create_access_token({"sub": str(user_id), "name": name})
 
     return {"access_token": token, "token_type": "bearer"}
-
-
