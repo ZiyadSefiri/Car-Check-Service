@@ -26,5 +26,16 @@ services:
     networks:
       - backend
 
+  reportservice:
+    build:
+      context: ./
+      dockerfile: ReportService/.dockerfile
+    container_name: reportservice
+    ports:
+      - "8180:8180"
+    environment:
+      - URL=${DB_URL:-mysql+pymysql://dev:@172.17.0.1:3306/car_service}
+    networks:
+      - backend
 networks:
   backend:
