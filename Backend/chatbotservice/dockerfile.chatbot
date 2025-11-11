@@ -1,0 +1,49 @@
+# ============================
+# Stage 1: Build environment
+# ============================
+FROM python:3.11-slim AS build
+
+# Set working directory
+WORKDIR /app
+
+# Prevent Python from writing .pyc files and enable unbuffered logs
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies (for building some Python packages)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements if you have a requirements.txt (recommended)
+# Otherwise, we’ll just install inline dependencies later
+COPY requirements.txt /app/requirements.txt
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ============================
+# Stage 2: Runtime environment
+# ============================
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy dependencies from build stage
+COPY --from=build /usr/local/lib/python3.11 /usr/local/lib/python3.11
+COPY --from=build /usr/local/bin /usr/local/bin
+
+# Copy project files
+COPY . /app
+
+# Environment variables (you can override these in docker-compose or Kubernetes)
+ENV GEMINI_API_KEY="your_gemini_api_key_here"
+ENV SECRET_KEY="your_secret_key_here"
+ENV PORT=8280
+
+# Expose the FastAPI port
+EXPOSE 8280
+
+# Run FastAPI with Uvicorn
+CMD ["uvicorn", "chatbot:app", "--host", "0.0.0.0", "--port", "8280"]
